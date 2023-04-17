@@ -1,0 +1,212 @@
+---
+title: "report.Rmd"
+output: html_document
+date: "2023-02-27"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r setup, include=FALSE}
+use_pkgs <-  c("dplyr", "tidyr", "readr", "lubridate", "stringr", "purrr",
+              "ggplot2", "tidyverse", "visdat", "terra", "hexbin", "jsonlite",
+              "MODISTools", "forcats", "yardstick", "recipes", "caret",
+              "broom", "skimr", "cowplot", "scico", "hwsdr", "usethis",
+              "renv", "rsample", "modelr", "rmarkdown", "rpart",
+              "rpart.plot", "ranger", "sessioninfo", "ncdf4", "zoo")
+
+new_pkgs <- use_pkgs[!(use_pkgs %in% installed.packages()[, "Package"])]
+if (length(new_pkgs) > 0) install.packages(new_pkgs)
+invisible(lapply(use_pkgs, require, character.only = TRUE))
+```
+
+
+```{r setup, include=FALSE}
+#Report Exercise VL3
+database_s1 <- readr::read_csv2("C:/Users/Mark/Desktop/AGDS/AGDS_Reportexercise_1_Data.csv")
+database_s1
+```
+
+
+```{r setup, include=FALSE}
+#Exercise 2
+data_log_response <- (database_s1[,5] / database_s1[,4])
+log_response <- log(data_log_response)
+log_response_aggregate <- database_s1[,1]
+log_response_table <- bind_cols(log_response_aggregate, log_response)
+colnames(log_response_table)[2] <- "log_response"
+
+log_aggregate <- log_response_table |>
+  group_by(Experiment) |>
+  summarise(log_response = mean(log_response))
+```
+
+
+```{r setup, include=FALSE}
+#Exercise 3
+
+log_yearly <- bind_cols(log_response_table, database_s1[,3])
+colnames(log_yearly)[3] <- "years"
+early_phase <- log_yearly[log_yearly[,3] < "3",] #??????
+mid_phase <- log_yearly[log_yearly[,3] >= "3" & log_yearly[,3] <= "6",]
+late_phase <- log_yearly[log_yearly[,3] > "6",] #10 und 11 werden nicht registriert
+```
+
+
+```{r setup, include=FALSE}
+#Report Exercise 4
+airquality <- datasets::airquality
+airquality$Date <- as.Date( paste( airquality$Month , airquality$Day , sep = "." )  , format = "%m.%d" )
+
+#Tempplot
+tempplot <- ggplot(data = airquality, aes(x = Date, y = Temp)) +
+  geom_line() +
+  theme_classic() +
+  labs(title = "Temperatur", x = "Month", y = "Temperatur [F]")
+
+#Windplot
+windplot <- ggplot(data = airquality, aes(x = Date, y = Wind)) +
+  geom_line() +
+  theme_classic() +
+  labs(title = "Wind", x = "Month", y = "Wind")
+
+```
+
+
+```{r setup, include=FALSE}
+#Ozonplot
+airquality <- datasets::airquality
+airquality$Date <- as.Date( paste( airquality$Month , airquality$Day , sep = "." )  , format = "%m.%d" )
+
+airquality <- airquality[!is.na(airquality$Ozone),]
+ozoneplot <- ggplot(data = airquality, aes(x = Date, y = Ozone)) +
+  geom_line() +
+  theme_classic() +
+  labs(title = "Ozone", x = "Month", y = "Ozone")
+```
+
+
+```{r setup, include=FALSE}
+#Solarplot
+airquality <- datasets::airquality
+airquality$Date <- as.Date( paste( airquality$Month , airquality$Day , sep = "." )  , format = "%m.%d" )
+
+airquality <- airquality[!is.na(airquality$Solar.R),]
+solarplot <- ggplot(data = airquality, aes(x = Date, y = Solar.R)) +
+  geom_line() +
+  theme_classic() +
+  labs(title = "Solar", x = "Month", y = "Radiation")
+```
+
+
+```{r setup, include=FALSE}
+plotsummary <- cowplot::plot_grid(tempplot, windplot, ozoneplot, solarplot)
+```
+
+
+```{r setup, include=FALSE}
+#Plot correlation Temp/Solar
+airquality <- datasets::airquality
+
+airquality <- airquality[!is.na(airquality$Solar.R),]
+temp_solar_plot <- ggplot(data = airquality, aes(x = Temp, y = Solar.R)) +
+  geom_point() +
+  theme_classic() +
+  geom_smooth(formula = y ~ x + 0, method = "lm", se = FALSE) +
+  labs(title = "Solar/Temp correlation", x = "Temp [F]", y = "Radiation")
+
+cor(airquality$Solar.R, airquality$Temp) #weak positive correlation
+```
+
+
+```{r setup, include=FALSE}
+#mean temp plot
+airquality <- datasets::airquality
+
+monthlytemp <- airquality |>
+  group_by(Month) |>
+  summarise(Temp = mean(Temp))
+
+
+monthlytempplot <- ggplot(data = monthlytemp, aes(x = Month, y = Temp)) +
+  geom_bar(stat = "identity", fill = c("yellow", "orange", "red", "lightgreen", "darkgreen")) +
+  theme_classic() +
+  labs(title = "Mean Temp", x = "Month", y = "Temp [F]")
+```
+
+
+```{r setup, include=FALSE}
+#mean wind plot
+airquality <- datasets::airquality
+
+monthlywind <- airquality |>
+  group_by(Month) |>
+  summarise(Wind = mean(Wind))
+
+
+monthlywindplot <- ggplot(data = monthlywind, aes(x = Month, y = Wind)) +
+  geom_bar(stat = "identity", fill = c("yellow", "orange", "red", "lightgreen", "darkgreen")) +
+  theme_classic() +
+  labs(title = "Mean Wind", x = "Month", y = "Wind")
+```
+
+
+```{r setup, include=FALSE}
+#mean solar plot
+airquality <- datasets::airquality
+airquality <- airquality[!is.na(airquality$Solar.R),]
+
+monthlysolar <- airquality |>
+  group_by(Month) |>
+  summarise(Solar.R = mean(Solar.R))
+
+
+monthlysolarplot <- ggplot(data = monthlysolar, aes(x = Month, y = Solar.R)) +
+  geom_bar(stat = "identity", fill = c("yellow", "orange", "red", "lightgreen", "darkgreen")) +
+  theme_classic() +
+  labs(title = "Mean Radiation", x = "Month", y = "Radiation")
+```
+
+
+```{r setup, include=FALSE}
+#mean ozone plot
+airquality <- datasets::airquality
+airquality <- airquality[!is.na(airquality$Ozone),]
+
+monthlyozone <- airquality |>
+  group_by(Month) |>
+  summarise(Ozone = mean(Ozone))
+
+
+monthlyozoneplot <- ggplot(data = monthlyozone, aes(x = Month, y = Ozone)) +
+  geom_bar(stat = "identity", fill = c("yellow", "orange", "red", "lightgreen", "darkgreen")) +
+  theme_classic() +
+  labs(title = "Mean Ozone", x = "Month", y = "Ozone")
+```
+
+
+```{r setup, include=FALSE}
+mean_plotsummary <- cowplot::plot_grid(monthlytempplot, monthlywindplot, monthlyozoneplot, monthlysolarplot)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
