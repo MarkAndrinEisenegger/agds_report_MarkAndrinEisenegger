@@ -24,6 +24,13 @@ invisible(lapply(use_pkgs, require, character.only = TRUE))
 
 
 ```{r setup, include=FALSE}
+library(usethis)
+usethis::use_git_config(user.name = "MarkAndrinEisenegger",
+               user.email = "mark.eisenegger@gmx.ch")
+```
+
+
+```{r setup, include=FALSE}
 #Report Exercise VL3
 database_s1 <- readr::read_csv2("C:/Users/Mark/Desktop/AGDS/AGDS_Reportexercise_1_Data.csv")
 database_s1
@@ -190,23 +197,3 @@ monthlyozoneplot <- ggplot(data = monthlyozone, aes(x = Month, y = Ozone)) +
 ```{r setup, include=FALSE}
 mean_plotsummary <- cowplot::plot_grid(monthlytempplot, monthlywindplot, monthlyozoneplot, monthlysolarplot)
 ```
-
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
-```
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
